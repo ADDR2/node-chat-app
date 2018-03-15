@@ -19,9 +19,13 @@ app.use(express.static(publicPath));
 io.on('connection', socket => {
     console.log('New user connected');
 
-    socket.on('createMessage', (message, callback) => {
-        console.log('createMessage', message);
-        io.emit('newMessage', generateMessage(message.from, message.text));
+    socket.on('createMessage', ({ text }, callback) => {
+        const user = users.getUser(socket.id);
+
+        if(user && isRealString(text)){
+            io.to(user.room).emit('newMessage', generateMessage(user.name, text));
+        }
+
         callback();
     });
 
@@ -47,7 +51,9 @@ io.on('connection', socket => {
     });
 
     socket.on('createLocationMessage', coords => {
-        io.emit('newLocationMessage', generateLocationMessage('Admin', coords));
+        const user = users.getUser(socket.id);
+
+        if(user) io.to(user.room).emit('newLocationMessage', generateLocationMessage(user.name, coords));
     });
 
     socket.on('disconnect', () => {
